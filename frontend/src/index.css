@@ -1,0 +1,29 @@
+body {
+	min-height: 100vh;
+	margin: 0;
+	font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+	background: linear-gradient(135deg, #e0e7ff 0%, #f5f7fa 100%);
+	color: #222;
+	overflow-x: hidden;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+
+form { margin-bottom: 20px; }
+button { margin-top: 10px; }
+
+.glass {
+	background: rgba(255, 255, 255, 0.7);
+	box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
+	backdrop-filter: blur(8px);
+	border-radius: 24px;
+	border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.hero-gradient {
+	background: linear-gradient(90deg, #6366f1 0%, #60a5fa 100%);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	background-clip: text;
+	text-fill-color: transparent;
+}

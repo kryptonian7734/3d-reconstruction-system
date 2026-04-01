@@ -1,0 +1,109 @@
+3D Reconstruction System - Project Workflow
+==========================================
+
+1) What this project does
+-------------------------
+This project converts multiple 2D photos into an interactive 3D model.
+You upload images of an object from different angles, and the system runs
+a photogrammetry pipeline to generate a model you can view in the browser.
+
+
+2) Technology used
+------------------
+Backend:
+- FastAPI (API server and job orchestration)
+- COLMAP (core photogrammetry engine, external executable)
+- Open3D (point cloud to mesh + GLB export)
+- Pillow (image loading/resizing)
+- OpenCV + NumPy (optional image quality analysis)
+
+Frontend:
+- Vanilla JS UI (served from backend/static)
+- React UI (in frontend/src, alternate interface)
+- Three.js (3D model viewer in browser)
+
+Data and outputs:
+- Uploaded images: data/uploads/<job_id>/
+- Reconstruction outputs: data/outputs/<job_id>/
+- Status tracking: data/outputs/job_status.json
+
+
+3) End-to-end workflow
+----------------------
+Step A: Upload
+- User selects images (now up to 100).
+- User chooses mode: Fast (Preview), Balanced, or High Quality.
+- Frontend sends POST /upload with files + quality.
+
+Step B: Job creation
+- Backend creates a unique job_id.
+- Images are saved under data/uploads/<job_id>/.
+- Basic preprocessing/resizing is applied.
+- Job status is set to "uploaded".
+
+Step C: Background reconstruction pipeline
+- Backend starts background task run_reconstruction(job_id, quality).
+- COLMAP stages run in order:
+  1. Feature extraction
+  2. Feature matching
+  3. Sparse reconstruction (camera poses + sparse points)
+  4. Dense reconstruction (dense point cloud)
+  5. Meshing/post-processing
+
+Step D: Meshing and model export
+- Open3D converts point cloud to mesh.
+- Final model exported as GLB:
+  data/outputs/<job_id>/dense/model.glb
+
+Step E: Progress tracking and viewing
+- Frontend polls GET /status/<job_id> every few seconds.
+- On completion, frontend loads GET /model/<job_id>.
+- Three.js displays the interactive 3D model.
+
+
+4) API endpoints (important)
+----------------------------
+- POST /upload           -> Upload images and start reconstruction
+- GET  /status/{job_id}  -> Current status/stage/error
+- GET  /model/{job_id}   -> Final GLB model
+- GET  /analyze/{job_id} -> Optional image quality analysis
+- GET  /presets          -> Available quality presets
+- GET  /health           -> Service health check
+
+
+5) Quality modes explained
+--------------------------
+Fast (Preview):
+- Faster runtime, lower reconstruction detail.
+- Good for quick checks and early preview.
+
+Balanced:
+- Good quality with reasonable processing time.
+- Recommended default for most users.
+
+High Quality:
+- Best detail and denser results.
+- Slower and uses more compute/memory.
+
+
+6) Image count and limits
+-------------------------
+- Current project upload limit is 100 images.
+- More images can improve coverage, but processing time and memory use increase.
+- Typical good range: 20-80 well-overlapped photos.
+
+
+7) How to explain this to a beginner
+------------------------------------
+Simple explanation:
+"The app looks for matching visual points across many photos, figures out
+where each photo was taken from, builds a 3D point cloud, then converts that
+cloud into a 3D surface model you can rotate and inspect in your browser."
+
+Photography tips for better results:
+- Capture 360-degree coverage around object.
+- Keep 60-80% overlap between neighboring shots.
+- Use sharp, well-lit images.
+- Avoid reflective or transparent objects when possible.
+
+

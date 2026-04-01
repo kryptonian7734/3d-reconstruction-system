@@ -1,0 +1,22 @@
+# Python Environments
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+venv312/
+.env
+
+# Data and Outputs (Ignore large user uploads and 3D models)
+data/uploads/*
+data/outputs/*
+!data/uploads/.gitkeep
+!data/outputs/.gitkeep
+
+# Node Modules (Frontend)
+frontend/node_modules/
+frontend/build/
+npm-debug.log*
+
+# OS specific files
+.DS_Store
+Thumbs.db

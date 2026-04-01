@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Reconstruction System | Photogrammetry Pipeline</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    
+    <!-- Import Maps for Three.js (Official Method) -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+<body>
+    <!-- ═══════════════════════════════════════════════════════════════════
+         HEADER SECTION
+         ═══════════════════════════════════════════════════════════════════ -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="M2 17l10 5 10-5"/>
+                    <path d="M2 12l10 5 10-5"/>
+                </svg>
+                <h1>3D Reconstruction System</h1>
+            </div>
+            <p class="tagline">Transform 2D photographs into interactive 3D models using photogrammetry</p>
+        </div>
+    </header>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         MAIN CONTENT
+         ═══════════════════════════════════════════════════════════════════ -->
+    <main class="main-content">
+        
+        <!-- Workflow Status Indicator -->
+        <div class="workflow-status" id="workflowStatus">
+            <div class="status-step active" data-step="idle">
+                <div class="step-indicator">1</div>
+                <span>Upload</span>
+            </div>
+            <div class="status-connector"></div>
+            <div class="status-step" data-step="uploaded">
+                <div class="step-indicator">2</div>
+                <span>Analyze</span>
+            </div>
+            <div class="status-connector"></div>
+            <div class="status-step" data-step="processing">
+                <div class="step-indicator">3</div>
+                <span>Reconstruct</span>
+            </div>
+            <div class="status-connector"></div>
+            <div class="status-step" data-step="finished">
+                <div class="step-indicator">4</div>
+                <span>View</span>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             UPLOAD PANEL
+             ═══════════════════════════════════════════════════════════════ -->
+        <section class="panel upload-panel" id="uploadPanel">
+            <div class="panel-header">
+                <h2>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    Upload Images
+                </h2>
+                <span class="image-count" id="imageCount">0 images selected</span>
+            </div>
+            
+            <div class="upload-zone" id="uploadZone">
+                <div class="upload-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <circle cx="8.5" cy="8.5" r="1.5"/>
+                        <path d="M21 15l-5-5L5 21"/>
+                    </svg>
+                </div>
+                <p class="upload-text">Drag & drop images here</p>
+                <p class="upload-subtext">or click to browse</p>
+                <input type="file" id="fileInput" multiple accept="image/*" hidden>
+            </div>
+            
+            <div class="image-preview-container" id="previewContainer">
+                <div class="preview-grid" id="previewGrid"></div>
+            </div>
+            
+            <div class="upload-actions">
+                <button class="btn btn-secondary" id="clearImagesBtn" disabled>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 6h18"/>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    </svg>
+                    Clear All
+                </button>
+
+
+                
+                <button class="btn btn-primary" id="uploadBtn" disabled>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    Upload & Start Reconstruction
+                </button>
+            </div>
+            
+            <!-- Image Analysis Results (shown after analysis) -->
+            <div class="analysis-results hidden" id="analysisResults">
+                <div class="analysis-header">
+                    <h3>📊 Image Analysis</h3>
+                    <span class="analysis-badge" id="analysisBadge">Analyzing...</span>
+                </div>
+                <div class="analysis-content" id="analysisContent"></div>
+            </div>
+            
+            <!-- Educational Tip -->
+            <div class="info-card">
+                <div class="info-icon">💡</div>
+                <div class="info-content">
+                    <strong>Why multiple viewpoints?</strong>
+                    <p>3D reconstruction works by triangulating common features across images. 
+                       More overlapping viewpoints = better depth estimation. Aim for 10-50 images 
+                       captured in a 360° arc around your object.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             RECONSTRUCTION PANEL
+             ═══════════════════════════════════════════════════════════════ -->
+        <section class="panel reconstruction-panel hidden" id="reconstructionPanel">
+            <div class="panel-header">
+                <h2>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    Reconstruction Progress
+                </h2>
+                <span class="job-id" id="jobIdDisplay"></span>
+            </div>
+            
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-percentage" id="progressPercentage">0%</div>
+            </div>
+            
+            <div class="stage-list" id="stageList">
+                <div class="stage" data-stage="uploaded">
+                    <div class="stage-icon pending">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                        </svg>
+                    </div>
+                    <div class="stage-info">
+                        <span class="stage-name">Images Uploaded</span>
+                        <span class="stage-desc">Preparing workspace</span>
+                    </div>
+                </div>
+                <div class="stage" data-stage="feature_extraction">
+                    <div class="stage-icon pending">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                        </svg>
+                    </div>
+                    <div class="stage-info">
+                        <span class="stage-name">Feature Extraction</span>
+                        <span class="stage-desc">Detecting SIFT keypoints in each image</span>
+                    </div>
+                </div>
+                <div class="stage" data-stage="feature_matching">
+                    <div class="stage-icon pending">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                        </svg>
+                    </div>
+                    <div class="stage-info">
+                        <span class="stage-name">Feature Matching</span>
+                        <span class="stage-desc">Finding correspondences between image pairs</span>
+                    </div>
+                </div>
+                <div class="stage" data-stage="sparse_reconstruction">
+                    <div class="stage-icon pending">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                        </svg>
+                    </div>
+                    <div class="stage-info">
+                        <span class="stage-name">Sparse Reconstruction</span>
+                        <span class="stage-desc">Structure from Motion (SfM) - estimating camera poses</span>
+                    </div>
+                </div>
+                <div class="stage" data-stage="dense_reconstruction">
+                    <div class="stage-icon pending">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                        </svg>
+                    </div>
+                    <div class="stage-info">
+                        <span class="stage-name">Dense Reconstruction</span>
+                        <span class="stage-desc">Multi-View Stereo (MVS) - generating dense point cloud</span>
+                    </div>
+                </div>
+                <div class="stage" data-stage="meshing">
+                    <div class="stage-icon pending">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                        </svg>
+                    </div>
+                    <div class="stage-info">
+                        <span class="stage-name">Mesh Generation</span>
+                        <span class="stage-desc">Converting point cloud to triangle mesh</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="current-stage-display" id="currentStageDisplay">
+                <div class="spinner"></div>
+                <span>Initializing...</span>
+            </div>
+            
+            <!-- ═══════════════════════════════════════════════════════════
+                 MINI-GAME SECTION (Entertainment while waiting)
+                 ═══════════════════════════════════════════════════════════ -->
+            <div class="game-container" id="gameContainer">
+                <div class="game-header">
+                    <h3>🎮 Photogrammetry Explorer</h3>
+                    <p>Learn about 3D reconstruction while you wait!</p>
+                </div>
+                
+                <div class="game-tabs">
+                    <button class="game-tab active" data-game="quiz">🧠 Quiz</button>
+                    <button class="game-tab" data-game="catch">📸 Feature Catch</button>
+                    <button class="game-tab" data-game="facts">💡 Fun Facts</button>
+                </div>
+                
+                <!-- Quiz Game -->
+                <div class="game-content" id="quizGame">
+                    <div class="quiz-question" id="quizQuestion">
+                        <p class="question-text">Loading question...</p>
+                        <div class="quiz-options" id="quizOptions"></div>
+                    </div>
+                    <div class="quiz-score">
+                        Score: <span id="quizScore">0</span> | Streak: <span id="quizStreak">0</span>🔥
+                    </div>
+                    <div class="quiz-feedback hidden" id="quizFeedback"></div>
+                </div>
+                
+                <!-- Feature Catch Game -->
+                <div class="game-content hidden" id="catchGame">
+                    <div class="catch-arena" id="catchArena">
+                        <div class="catch-instructions">
+                            <p>Click the <span class="feature-point">✦</span> feature points before they disappear!</p>
+                            <button class="btn btn-primary" id="startCatchGame">Start Game</button>
+                        </div>
+                        <div class="catch-score hidden" id="catchScore">
+                            Caught: <span id="featuresCaught">0</span> | Missed: <span id="featuresMissed">0</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Fun Facts Carousel -->
+                <div class="game-content hidden" id="factsGame">
+                    <div class="facts-carousel">
+                        <div class="fact-card" id="factCard">
+                            <div class="fact-icon">🔬</div>
+                            <p class="fact-text">Loading fascinating fact...</p>
+                        </div>
+                        <div class="fact-navigation">
+                            <button class="btn btn-icon" id="prevFact">←</button>
+                            <span id="factCounter">1/10</span>
+                            <button class="btn btn-icon" id="nextFact">→</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Educational Tip -->
+            <div class="info-card">
+                <div class="info-icon">⏱️</div>
+                <div class="info-content">
+                    <strong>Why does reconstruction take time?</strong>
+                    <p>COLMAP performs computationally intensive operations: detecting thousands of 
+                       features per image, matching them across all pairs, solving camera geometry, 
+                       and computing depth maps. This ensures high-quality results comparable to 
+                       professional photogrammetry software.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             ERROR PANEL
+             ═══════════════════════════════════════════════════════════════ -->
+        <section class="panel error-panel hidden" id="errorPanel">
+            <div class="error-content">
+                <div class="error-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                </div>
+                <h3 id="errorTitle">Reconstruction Failed</h3>
+                <p id="errorMessage">An unknown error occurred.</p>
+                
+                <!-- Dynamic error causes -->
+                <div class="error-suggestions" id="errorCauses">
+                    <h4>Possible causes:</h4>
+                    <ul id="errorCausesList"></ul>
+                </div>
+                
+                <!-- Dynamic suggestions -->
+                <div class="error-suggestions" id="errorSuggestions">
+                    <h4>Suggestions:</h4>
+                    <ul id="errorSuggestionsList"></ul>
+                </div>
+                
+                <button class="btn btn-primary" id="retryBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 4v6h6"/>
+                        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+                    </svg>
+                    Try Again
+                </button>
+            </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             VIEWER PANEL
+             ═══════════════════════════════════════════════════════════════ -->
+        <section class="panel viewer-panel hidden" id="viewerPanel">
+            <div class="panel-header">
+                <h2>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                        <path d="M2 17l10 5 10-5"/>
+                        <path d="M2 12l10 5 10-5"/>
+                    </svg>
+                    Interactive 3D Model
+                </h2>
+                <div class="viewer-controls">
+                    <button class="btn btn-icon" id="resetCameraBtn" title="Reset Camera">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 4v6h6"/>
+                            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+                        </svg>
+                    </button>
+                    <button class="btn btn-icon" id="screenshotBtn" title="Take Screenshot">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                            <circle cx="12" cy="13" r="4"/>
+                        </svg>
+                    </button>
+                    <button class="btn btn-icon" id="fullscreenBtn" title="Fullscreen">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M8 3H5a2 2 0 0 0-2 2v3"/>
+                            <path d="M21 8V5a2 2 0 0 0-2-2h-3"/>
+                            <path d="M3 16v3a2 2 0 0 0 2 2h3"/>
+                            <path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+                        </svg>
+                    </button>
+                    <button class="btn btn-secondary" id="newReconstructionBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        New Reconstruction
+                    </button>
+                </div>
+            </div>
+            
+            <div class="viewer-container" id="viewerContainer">
+                <div class="viewer-canvas" id="viewerCanvas"></div>
+                <div class="viewer-loading hidden" id="viewerLoading">
+                    <div class="spinner"></div>
+                    <span>Loading 3D model...</span>
+                </div>
+            </div>
+            
+            <div class="viewer-instructions">
+                <span><kbd>Drag</kbd> to rotate</span>
+                <span><kbd>Scroll</kbd> to zoom</span>
+                <span><kbd>Right-drag</kbd> to pan</span>
+            </div>
+            
+            <!-- Model Stats -->
+            <div class="stats-grid" id="modelStats">
+                <div class="stat-card">
+                    <div class="stat-value" id="statImages">-</div>
+                    <div class="stat-label">Images Used</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statVertices">-</div>
+                    <div class="stat-label">Vertices</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statFaces">-</div>
+                    <div class="stat-label">Faces</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statTime">-</div>
+                    <div class="stat-label">Processing Time</div>
+                </div>
+            </div>
+            
+            <!-- Educational Tip -->
+            <div class="info-card">
+                <div class="info-icon">🎯</div>
+                <div class="info-content">
+                    <strong>What affects 3D quality?</strong>
+                    <p>Model quality depends on: (1) Image sharpness and resolution, 
+                       (2) Consistent lighting without harsh shadows, (3) Textured surfaces 
+                       with distinctive features, (4) Sufficient overlap between consecutive 
+                       images (60-80% recommended), and (5) Stable camera positions.</p>
+                </div>
+            </div>
+        </section>
+        
+    </main>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         FOOTER
+         ═══════════════════════════════════════════════════════════════════ -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p>Built with <span class="highlight">COLMAP</span> + <span class="highlight">Open3D</span> + <span class="highlight">Three.js</span></p>
+            <p class="footer-note">Automated photogrammetry pipeline for academic research</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script type="module" src="/static/app.js"></script>
+</body>
+</html>
