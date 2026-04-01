@@ -79,4 +79,3 @@ This project is an automated 3D Reconstruction System that converts multiple 2D 
 - `Project_Workflow.txt`: Detailed internal documentation of the end-to-end pipeline.
 
 ## License
-MIT
